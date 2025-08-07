@@ -1,0 +1,357 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Excel-like grid styles */
+.excel-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* Fixed layout for consistent column widths */
+}
+
+.excel-cell {
+  border: 1px solid #d1d5db;
+  border-right: none;
+  border-bottom: none;
+  position: relative;
+  overflow: hidden; /* Prevent content overflow */
+  height: 48px; /* Increased height for better button visibility */
+}
+
+.dark .excel-cell {
+  border-color: #4b5563;
+}
+
+/* Numeric cell styles */
+.numeric-cell {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.numeric-cell:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .numeric-cell:hover {
+  background-color: #4b5563 !important;
+}
+
+.numeric-cell.active {
+  background-color: #dbeafe !important;
+}
+
+.dark .numeric-cell.active {
+  background-color: #1e40af !important;
+}
+
+.numeric-cell-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 4px;
+  z-index: 15;
+}
+
+.numeric-display {
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.dark .numeric-display {
+  color: #f9fafb;
+}
+
+.numeric-display-active {
+  font-weight: 600;
+  color: #1d4ed8;
+  font-size: 16px;
+  min-width: 60px;
+  text-align: center;
+  padding: 8px 12px;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  margin: 0 4px;
+}
+
+.dark .numeric-display-active {
+  background: #1f2937;
+  color: #93c5fd;
+  border-color: #60a5fa;
+}
+
+.numeric-cell-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 4px;
+}
+
+.numeric-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid #3b82f6;
+  background: #3b82f6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-weight: 600;
+  z-index: 20;
+  position: relative;
+}
+
+.dark .numeric-btn {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.numeric-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  transform: scale(1.05);
+}
+
+.dark .numeric-btn:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.numeric-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.numeric-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #9ca3af;
+  border-color: #9ca3af;
+}
+
+.decrement-btn {
+  margin-right: 2px;
+}
+
+.increment-btn {
+  margin-left: 2px;
+}
+
+/* Row number column styling */
+.excel-grid th:first-child,
+.excel-grid td:first-child {
+  background-color: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+  min-width: 60px !important;
+  width: 60px !important;
+  flex-shrink: 0;
+}
+
+.dark .excel-grid th:first-child,
+.dark .excel-grid td:first-child {
+  background-color: #374151;
+  color: white;
+}
+
+.excel-cell:last-child {
+  border-right: 1px solid #d1d5db;
+}
+
+.dark .excel-cell:last-child {
+  border-right: 1px solid #4b5563;
+}
+
+.excel-row:last-child .excel-cell {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.dark .excel-row:last-child .excel-cell {
+  border-bottom: 1px solid #4b5563;
+}
+
+.excel-cell input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+}
+
+.dark .excel-cell input {
+  color: white;
+}
+
+.excel-cell input:focus {
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 2px #3b82f6;
+}
+
+.dark .excel-cell input:focus {
+  background: #1e3a8a;
+  box-shadow: inset 0 0 0 2px #60a5fa;
+}
+
+.excel-cell.readonly {
+  background-color: #f9fafb;
+}
+
+.dark .excel-cell.readonly {
+  background-color: #374151;
+}
+
+.excel-cell.readonly input {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.dark .excel-cell.readonly input {
+  background-color: #374151;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Sticky header styles */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .sticky-header {
+  background: #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Sticky row 1 styles */
+.sticky-row-1 {
+  position: sticky;
+  top: 41px; /* Height of header row */
+  z-index: 15;
+  background: #f9fafb !important; /* Light gray background instead of blue */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dark .sticky-row-1 {
+  background: #374151 !important; /* Dark gray background */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.sticky-row-1 .excel-cell {
+  background-color: #f9fafb;
+}
+
+.dark .sticky-row-1 .excel-cell {
+  background-color: #374151;
+}
+
+.sticky-row-1 .excel-cell input {
+  background-color: #f9fafb;
+}
+
+.dark .sticky-row-1 .excel-cell input {
+  background-color: #374151;
+  color: white;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.dark .spinner {
+  border: 2px solid #4b5563;
+  border-top: 2px solid #60a5fa;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Toast notification styles */
+.toast {
+  @apply fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast.success {
+  @apply border-green-200 bg-green-50;
+}
+
+.toast.error {
+  @apply border-red-200 bg-red-50;
+}
+
+.toast.warning {
+  @apply border-yellow-200 bg-yellow-50;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Performance optimizations */
+.grid-container {
+  contain: layout style paint;
+}
+
+.cell-input {
+  contain: layout style;
+}

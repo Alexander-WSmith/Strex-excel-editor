@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Test Excel File</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Excel Test File Generator</h1>
+    <button onclick="createTestFile()">Create Test Excel File with Formatting</button>
+    
+    <script>
+        function createTestFile() {
+            // Create a new workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create test data
+            const data = [
+                ['Name', 'Age', 'Department', 'Salary', 'Score', 'Rating', 'Status', 'Value1', 'Value2', 'Value3'],
+                ['John Doe', 30, 'Engineering', 75000, 85, 4.2, 'Active', 10, 20, 30],
+                ['Jane Smith', 25, 'Marketing', 65000, 92, 4.8, 'Active', 15, 25, 35],
+                ['Bob Johnson', 35, 'Sales', 70000, 78, 3.9, 'Active', 5, 15, 25],
+                ['Alice Brown', 28, 'HR', 55000, 88, 4.5, 'Active', 12, 22, 32]
+            ];
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Add some basic styling (this is limited in XLSX.js but let's try)
+            // Set column widths
+            ws['!cols'] = [
+                {wch: 15}, {wch: 8}, {wch: 12}, {wch: 10}, 
+                {wch: 8}, {wch: 8}, {wch: 10}, {wch: 10}, 
+                {wch: 10}, {wch: 10}
+            ];
+            
+            // Set row heights
+            ws['!rows'] = [
+                {hpt: 25}, // Header row height
+                {hpt: 20}, {hpt: 20}, {hpt: 20}, {hpt: 20}
+            ];
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'TestData');
+            
+            // Write file
+            XLSX.writeFile(wb, 'test-formatting.xlsx');
+            
+            alert('Test Excel file created! Check your downloads folder.');
+        }
+    </script>
+</body>
+</html>
