@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
   ],
-  base: './',
+  base: process.env.NODE_ENV === 'production' ? '/strex-excel-editor/' : './',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
