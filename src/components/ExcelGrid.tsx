@@ -7,7 +7,7 @@ interface ExcelGridProps {
   data: any[][];
   originalData: any[][]; // Full original dataset for sticky row 1
   modifiedCells: ModifiedCells;
-  onCellUpdate: (row: number, col: number, value: string) => void;
+  onCellUpdate: (rowData: any[], col: number, value: string) => void; // Changed to pass rowData instead of row index
   lockedColumns: number;
   currentPage: number;
   rowsPerPage: number;
@@ -15,25 +15,25 @@ interface ExcelGridProps {
 
 interface EditableCellProps {
   value: any;
-  row: number;
+  rowData: any[]; // Changed from row: number to rowData: any[]
   col: number;
   isLocked: boolean;
   isModified: boolean;
-  onUpdate: (row: number, col: number, value: string) => void;
+  onUpdate: (rowData: any[], col: number, value: string) => void;
   columnWidth?: number;
 }
 
 interface NumericCellProps {
   value: any;
-  row: number;
+  rowData: any[]; // Changed from row: number to rowData: any[]
   col: number;
   isLocked: boolean;
   isModified: boolean;
-  onUpdate: (row: number, col: number, value: string) => void;
+  onUpdate: (rowData: any[], col: number, value: string) => void;
   columnWidth?: number;
 }
 
-function NumericCell({ value, row, col, isLocked, isModified, onUpdate, columnWidth }: NumericCellProps) {
+function NumericCell({ value, rowData, col, isLocked, isModified, onUpdate, columnWidth }: NumericCellProps) {
   const [isActive, setIsActive] = useState(false);
   const cellRef = useRef<HTMLTableCellElement>(null);
   
@@ -47,18 +47,18 @@ function NumericCell({ value, row, col, isLocked, isModified, onUpdate, columnWi
     e.preventDefault();
     if (!isLocked) {
       const newValue = numericValue + 1;
-      onUpdate(row, col, String(newValue));
+      onUpdate(rowData, col, String(newValue));
     }
-  }, [numericValue, row, col, onUpdate, isLocked]);
+  }, [numericValue, rowData, col, onUpdate, isLocked]);
 
   const handleDecrement = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!isLocked && numericValue > 0) {
       const newValue = numericValue - 1;
-      onUpdate(row, col, String(newValue));
+      onUpdate(rowData, col, String(newValue));
     }
-  }, [numericValue, row, col, onUpdate, isLocked]);
+  }, [numericValue, rowData, col, onUpdate, isLocked]);
 
   const handleCellClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -151,10 +151,10 @@ function NumericCell({ value, row, col, isLocked, isModified, onUpdate, columnWi
   );
 }
 
-function EditableCell({ value, row, col, isLocked, isModified, onUpdate, columnWidth }: EditableCellProps) {
+function EditableCell({ value, rowData, col, isLocked, isModified, onUpdate, columnWidth }: EditableCellProps) {
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(row, col, e.target.value);
-  }, [row, col, onUpdate]);
+    onUpdate(rowData, col, e.target.value);
+  }, [rowData, col, onUpdate]);
 
   const displayValue = value ?? '';
 
@@ -215,21 +215,22 @@ export function ExcelGrid({
   const tableData = useMemo(() => {
     return data.map((row, rowIndex) => 
       row.map((cell, colIndex) => {
-        const globalRowIndex = startRow + rowIndex;
-        const cellKey = `${globalRowIndex},${colIndex}`;
-        const isModified = cellKey in modifiedCells;
-        const displayValue = isModified ? modifiedCells[cellKey] : cell;
+        // Use record ID (first column) + column index for modified cell tracking
+        const recordId = row[0]; // First column as unique identifier
+        const recordKey = `${recordId}|${colIndex}`;
+        const isModified = recordKey in modifiedCells;
+        const displayValue = isModified ? modifiedCells[recordKey] : cell;
         
         return {
           value: displayValue,
           isModified,
           isLocked: colIndex < lockedColumns,
-          globalRowIndex,
+          rowData: row, // Pass the actual row data
           colIndex
         };
       })
     );
-  }, [data, modifiedCells, lockedColumns, startRow]);
+  }, [data, modifiedCells, lockedColumns]);
 
   // Always show row 1 (index 0) when there's data, using original data
   const stickyRow1 = useMemo(() => {
@@ -240,15 +241,17 @@ export function ExcelGrid({
     if (!firstDataRow) return null;
 
     return firstDataRow.map((cell, colIndex) => {
-      const cellKey = `0,${colIndex}`;
-      const isModified = cellKey in modifiedCells;
-      const displayValue = isModified ? modifiedCells[cellKey] : cell;
+      // Use record ID (first column) + column index for modified cell tracking
+      const recordId = firstDataRow[0];
+      const recordKey = `${recordId}|${colIndex}`;
+      const isModified = recordKey in modifiedCells;
+      const displayValue = isModified ? modifiedCells[recordKey] : cell;
       
       return {
         value: displayValue,
         isModified,
         isLocked: colIndex < lockedColumns,
-        globalRowIndex: 0,
+        rowData: firstDataRow, // Pass the actual row data
         colIndex
       };
     });
@@ -309,7 +312,7 @@ export function ExcelGrid({
                     <NumericCell
                       key={`sticky-0-${colIndex}`}
                       value={cell.value}
-                      row={cell.globalRowIndex}
+                      rowData={cell.rowData}
                       col={cell.colIndex}
                       isLocked={cell.isLocked}
                       isModified={cell.isModified}
@@ -320,7 +323,7 @@ export function ExcelGrid({
                     <EditableCell
                       key={`sticky-0-${colIndex}`}
                       value={cell.value}
-                      row={cell.globalRowIndex}
+                      rowData={cell.rowData}
                       col={cell.colIndex}
                       isLocked={cell.isLocked}
                       isModified={cell.isModified}
@@ -351,7 +354,7 @@ export function ExcelGrid({
                       <NumericCell
                         key={`${startRow + rowIndex}-${colIndex}`}
                         value={cell.value}
-                        row={cell.globalRowIndex}
+                        rowData={cell.rowData}
                         col={cell.colIndex}
                         isLocked={cell.isLocked}
                         isModified={cell.isModified}
@@ -362,7 +365,7 @@ export function ExcelGrid({
                       <EditableCell
                         key={`${startRow + rowIndex}-${colIndex}`}
                         value={cell.value}
-                        row={cell.globalRowIndex}
+                        rowData={cell.rowData}
                         col={cell.colIndex}
                         isLocked={cell.isLocked}
                         isModified={cell.isModified}

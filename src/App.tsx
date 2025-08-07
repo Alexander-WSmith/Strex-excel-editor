@@ -229,11 +229,19 @@ function AppContent() {
     }
   }, [showToast]);
 
-  // Cell update handler
-  const handleCellUpdate = useCallback((row: number, col: number, value: string) => {
+  // Cell update handler - now tracks by record ID instead of visual position
+  const handleCellUpdate = useCallback((rowData: any[], col: number, value: string) => {
+    if (!rowData || rowData.length === 0) return;
+    
+    // Use the first column (usually name/ID) as unique identifier for the record
+    const recordId = rowData[0]; // First column value as unique ID
+    const recordKey = `${recordId}|${col}`; // Combine record ID with column index
+    
+    console.log(`Updating record "${recordId}" column ${col} to "${value}"`);
+    
     setModifiedCells((prev: {[key: string]: string}) => ({
       ...prev,
-      [`${row},${col}`]: value,
+      [recordKey]: value,
     }));
   }, []);
 
@@ -251,11 +259,13 @@ function AppContent() {
     // Create a copy of the data and apply user modifications
     const modifiedData = excelData.data.map((row: any[], rowIndex: number) => 
       row.map((cell: any, colIndex: number) => {
-        const modifiedKey = `${rowIndex},${colIndex}`;
-        const modifiedValue = modifiedCells[modifiedKey];
+        // Use record ID (first column) + column index as key
+        const recordId = row[0]; // First column as unique identifier
+        const recordKey = `${recordId}|${colIndex}`;
+        const modifiedValue = modifiedCells[recordKey];
         
         if (modifiedValue !== undefined) {
-          console.log(`Applying change: row ${rowIndex}, col ${colIndex} = ${modifiedValue}`);
+          console.log(`Applying change: record "${recordId}" col ${colIndex} = ${modifiedValue}`);
           return modifiedValue;
         }
         return cell;
@@ -337,9 +347,11 @@ function AppContent() {
       // For CSV and other formats, we need worksheet data
       const modifiedData = excelData.data.map((row: any[], rowIndex: number) => 
         row.map((cell: any, colIndex: number) => {
-          const modifiedKey = `${rowIndex},${colIndex}`;
-          return modifiedCells[modifiedKey] !== undefined 
-            ? modifiedCells[modifiedKey] 
+          // Use record ID (first column) + column index as key
+          const recordId = row[0];
+          const recordKey = `${recordId}|${colIndex}`;
+          return modifiedCells[recordKey] !== undefined 
+            ? modifiedCells[recordKey] 
             : cell;
         })
       );
