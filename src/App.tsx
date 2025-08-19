@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { FileUploader } from './components/FileUploader';
 import { SearchBar } from './components/SearchBar';
 import { ExcelGrid, OptionsPanel, StatusBar, ToastContainer } from './components/index';
@@ -8,7 +8,7 @@ import { DarkModeProvider, useDarkMode } from './hooks/useDarkMode.tsx';
 import { useKeyboardShortcuts, KeyboardShortcutsHelp } from './hooks/useKeyboardShortcuts';
 import { useToast } from './hooks/useToast';
 import { AppSettings, ExcelFormatting } from './types';
-import { Download, Settings, FileText, Moon, Sun, Clock, HelpCircle, History } from 'lucide-react';
+import { Download, Settings, FileText, Moon, Sun, Clock, HelpCircle, History, FolderOpen, X } from 'lucide-react';
 
 // Enhanced data structure with formatting preservation
 interface SimpleExcelData {
@@ -35,6 +35,7 @@ function AppContent() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showRecentFiles, setShowRecentFiles] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [showLoadNewConfirm, setShowLoadNewConfirm] = useState(false);
   
   // App settings
   const [settings, setSettings] = useState<AppSettings>({
@@ -44,6 +45,49 @@ function AppContent() {
     customFilename: 'Strexlista modified',
     autoSaveInterval: 5,
   });
+
+  // Load data from localStorage on app start
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem('strex-excel-data');
+      const savedModifications = localStorage.getItem('strex-excel-modifications');
+      
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setExcelData(parsedData);
+        console.log('Restored Excel data from localStorage:', parsedData.filename);
+      }
+      
+      if (savedModifications) {
+        const parsedModifications = JSON.parse(savedModifications);
+        setModifiedCells(parsedModifications);
+        console.log('Restored modifications from localStorage:', Object.keys(parsedModifications).length, 'changes');
+      }
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+      // Clear corrupted data
+      localStorage.removeItem('strex-excel-data');
+      localStorage.removeItem('strex-excel-modifications');
+    }
+  }, []);
+
+  // Save data to localStorage whenever excelData or modifiedCells change
+  useEffect(() => {
+    if (excelData) {
+      localStorage.setItem('strex-excel-data', JSON.stringify(excelData));
+      console.log('Saved Excel data to localStorage');
+    }
+  }, [excelData]);
+
+  useEffect(() => {
+    if (Object.keys(modifiedCells).length > 0) {
+      localStorage.setItem('strex-excel-modifications', JSON.stringify(modifiedCells));
+      console.log('Saved modifications to localStorage');
+    } else {
+      // Remove empty modifications from localStorage
+      localStorage.removeItem('strex-excel-modifications');
+    }
+  }, [modifiedCells]);
 
   // Keyboard shortcuts integration
   useKeyboardShortcuts({
@@ -457,6 +501,59 @@ function AppContent() {
     }
   }, [excelData, modifiedCells, settings.customFilename, createWorkbookWithChanges, showToast]);
 
+  // Load new file handlers
+  const handleLoadNewFileRequest = useCallback(() => {
+    const hasUnsavedChanges = Object.keys(modifiedCells).length > 0;
+    if (hasUnsavedChanges) {
+      setShowLoadNewConfirm(true);
+    } else {
+      handleLoadNewFileConfirmed(false);
+    }
+  }, [modifiedCells]);
+
+  const handleLoadNewFileConfirmed = useCallback(async (shouldSave: boolean) => {
+    if (shouldSave && excelData) {
+      try {
+        // Save current file before loading new one
+        await handleExport('save');
+        showToast({
+          type: 'success',
+          message: 'Current file saved successfully!',
+          duration: 3000
+        });
+      } catch (error) {
+        showToast({
+          type: 'error',
+          message: 'Failed to save current file',
+          duration: 4000
+        });
+        return; // Don't proceed if save failed
+      }
+    }
+    
+    // Clear current data and go back to file upload screen
+    setExcelData(null);
+    setModifiedCells({});
+    setSearchText('');
+    setCurrentPage(0);
+    setError(null);
+    setShowLoadNewConfirm(false);
+    
+    // Clear localStorage
+    localStorage.removeItem('strex-excel-data');
+    localStorage.removeItem('strex-excel-modifications');
+    
+    showToast({
+      type: 'info',
+      message: 'Ready to load new file',
+      duration: 2000
+    });
+  }, [excelData, handleExport, showToast]);
+
+  const handleCancelLoadNew = useCallback(() => {
+    setShowLoadNewConfirm(false);
+  }, []);
+
   // Recent files handler
   const handleRecentFileSelect = useCallback(async (recentFile: { name: string; path: string }) => {
     // For web implementation, we can't directly access file paths
@@ -558,14 +655,25 @@ function AppContent() {
             )}
             
             {excelData && (
-              <button
-                onClick={() => setShowExportModal(true)}
-                disabled={!excelData}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export</span>
-              </button>
+              <>
+                <button
+                  onClick={handleLoadNewFileRequest}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  title="Load a new Excel file"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  <span>Load New File</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  disabled={!excelData}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export</span>
+                </button>
+              </>
             )}
             
             <button
@@ -647,6 +755,50 @@ function AppContent() {
         onExport={handleExport}
         filename={excelData?.filename || 'excel-export'}
       />
+
+      {/* Load New File Confirmation Modal */}
+      {showLoadNewConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Load New File</h3>
+              <button
+                onClick={handleCancelLoadNew}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                You have unsaved changes. What would you like to do before loading a new file?
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => handleLoadNewFileConfirmed(true)}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Save & Load New
+                </button>
+                <button
+                  onClick={() => handleLoadNewFileConfirmed(false)}
+                  className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  Don't Save
+                </button>
+                <button
+                  onClick={handleCancelLoadNew}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <RecentFilesModal
         isOpen={showRecentFiles}
