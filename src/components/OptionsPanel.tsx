@@ -118,24 +118,6 @@ export function OptionsPanel({ settings, onSettingsUpdate, onClose, onClearCache
             )}
           </div>
 
-          {/* File Settings */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-900">File Settings</h3>
-            
-            <div>
-              <label className="block text-sm text-gray-700 mb-2">
-                Default filename
-              </label>
-              <input
-                type="text"
-                value={localSettings.customFilename}
-                onChange={(e) => handleInputChange('customFilename', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Enter default filename"
-              />
-            </div>
-          </div>
-
           {/* Cache Management */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-gray-900">Cache Management</h3>

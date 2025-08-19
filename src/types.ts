@@ -32,7 +32,6 @@ export interface AppSettings {
   rowsPerPage: number;
   lockedColumns: number;
   columnsLocked: boolean;
-  customFilename: string;
   autoSaveInterval: number; // in minutes
 }
 

@@ -18,7 +18,6 @@ export function useAutoSave(modifiedCells: ModifiedCells, intervalMinutes: numbe
         rowsPerPage: 30,
         lockedColumns: 3,
         columnsLocked: true,
-        customFilename: 'Strexlista modified',
         autoSaveInterval: intervalMinutes,
       },
     };

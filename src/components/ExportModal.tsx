@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Download, Mail, Printer, X, FileText, FileSpreadsheet } from 'lucide-react';
+import { Download, Mail, Printer, X, FileSpreadsheet } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExport: (type: 'save' | 'csv' | 'pdf' | 'email' | 'print') => void;
+  onExport: (type: 'save' | 'pdf' | 'email' | 'print') => void;
   filename: string;
 }
 
@@ -13,7 +13,7 @@ export function ExportModal({ isOpen, onClose, onExport, filename }: ExportModal
 
   if (!isOpen) return null;
 
-  const handleExport = (type: 'save' | 'csv' | 'pdf' | 'email' | 'print') => {
+  const handleExport = (type: 'save' | 'pdf' | 'email' | 'print') => {
     onExport(type);
     onClose();
   };
@@ -53,17 +53,6 @@ export function ExportModal({ isOpen, onClose, onExport, filename }: ExportModal
               <div className="text-left">
                 <div className="font-medium text-blue-900">Save as Excel</div>
                 <div className="text-sm text-blue-700">Download as .xlsx file</div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleExport('csv')}
-              className="w-full flex items-center space-x-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-            >
-              <FileText className="w-5 h-5 text-green-600" />
-              <div className="text-left">
-                <div className="font-medium text-green-900">Export as CSV</div>
-                <div className="text-sm text-green-700">Compatible with all spreadsheet apps</div>
               </div>
             </button>
 

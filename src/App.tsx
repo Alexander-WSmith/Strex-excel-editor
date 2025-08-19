@@ -42,7 +42,6 @@ function AppContent() {
     rowsPerPage: 30,
     lockedColumns: 3,
     columnsLocked: true,
-    customFilename: 'Strexlista modified',
     autoSaveInterval: 5,
   });
 
@@ -289,7 +288,7 @@ function AppContent() {
     }));
   }, []);
 
-  // Simple helper function to create workbook with user changes
+  // Enhanced helper function to create workbook with user changes while preserving formatting
   const createWorkbookWithChanges = useCallback(async () => {
     const XLSX = await import('xlsx');
     
@@ -297,14 +296,132 @@ function AppContent() {
       throw new Error('No Excel data available');
     }
     
-    console.log('Creating workbook with user changes...');
+    console.log('Creating workbook with user changes and preserved formatting...');
     console.log('Modified cells:', modifiedCells);
+    console.log('Original formatting available:', !!excelData.formatting);
     
-    // Create a copy of the data and apply user modifications
+    // If we have original formatting, clone the original workbook
+    if (excelData.formatting && excelData.formatting.workbook) {
+      console.log('Using original workbook with formatting preservation');
+      
+      try {
+        // Re-read the original buffer to ensure we have a fresh, complete workbook
+        const XLSX = await import('xlsx');
+        const originalBuffer = excelData.formatting.originalBuffer;
+        
+        // Parse the original file again with all formatting options
+        const workbook = XLSX.read(originalBuffer, { 
+          type: 'array',
+          cellStyles: true,
+          cellDates: true,
+          sheetStubs: true,
+          cellNF: true,
+          cellHTML: false,
+          dense: false
+        });
+        
+        // Get the worksheet
+        const worksheet = workbook.Sheets[excelData.formatting.sheetName];
+        
+        console.log('Original workbook parsed successfully');
+        console.log('Available sheets:', workbook.SheetNames);
+        console.log('Working with sheet:', excelData.formatting.sheetName);
+        
+        // Debug: Check a few cells to see if formatting is preserved
+        const sampleCells = ['A1', 'B1', 'C1', 'A2', 'B2'];
+        sampleCells.forEach(cellRef => {
+          const cell = worksheet[cellRef];
+          if (cell) {
+            console.log(`Cell ${cellRef}:`, {
+              value: cell.v,
+              hasStyle: !!cell.s,
+              style: cell.s ? {
+                fill: cell.s.fill,
+                font: cell.s.font,
+                border: cell.s.border
+              } : 'none'
+            });
+          }
+        });
+        
+        // Apply user modifications while preserving formatting
+        Object.keys(modifiedCells).forEach(key => {
+          const recordId = key.split('|')[0];
+          const colIndex = parseInt(key.split('|')[1]);
+          
+          // Find the row index for this record ID
+          const rowIndex = excelData.data.findIndex(row => row[0] === recordId);
+          if (rowIndex >= 0) {
+            // Convert to Excel cell reference (adding 1 for headers, +1 for 1-based indexing)
+            const cellRef = XLSX.utils.encode_cell({ r: rowIndex + 1, c: colIndex });
+            
+            console.log(`Updating cell ${cellRef} with value: ${modifiedCells[key]}`);
+            
+            // Update the cell value while preserving its formatting
+            if (worksheet[cellRef]) {
+              // Keep existing cell object but update value
+              const originalCell = worksheet[cellRef];
+              worksheet[cellRef] = {
+                ...originalCell,
+                v: modifiedCells[key], // Update raw value
+                w: modifiedCells[key], // Update formatted value 
+                t: typeof modifiedCells[key] === 'number' ? 'n' : 's' // Update type if needed
+              };
+              console.log(`Updated existing cell ${cellRef}, preserved style:`, !!originalCell.s);
+            } else {
+              // Create new cell if it doesn't exist, try to inherit nearby formatting
+              const newCell: any = {
+                v: modifiedCells[key],
+                w: modifiedCells[key],
+                t: typeof modifiedCells[key] === 'number' ? 'n' : 's'
+              };
+              
+              // Try to inherit formatting from the cell above or to the left
+              const aboveRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+              const leftRef = XLSX.utils.encode_cell({ r: rowIndex + 1, c: colIndex - 1 });
+              
+              if (worksheet[aboveRef] && worksheet[aboveRef].s) {
+                newCell.s = worksheet[aboveRef].s;
+                console.log(`New cell ${cellRef} inherited formatting from above`);
+              } else if (worksheet[leftRef] && worksheet[leftRef].s) {
+                newCell.s = worksheet[leftRef].s;
+                console.log(`New cell ${cellRef} inherited formatting from left`);
+              }
+              
+              worksheet[cellRef] = newCell;
+            }
+          }
+        });
+        
+        console.log('Successfully applied all modifications to formatted workbook');
+        
+        // Final check: Verify that formatting is still present
+        const finalSampleCells = ['A1', 'B1', 'C1'];
+        finalSampleCells.forEach(cellRef => {
+          const cell = worksheet[cellRef];
+          if (cell && cell.s) {
+            console.log(`Final check - Cell ${cellRef} still has formatting:`, {
+              hasStyle: !!cell.s,
+              fill: cell.s.fill,
+              font: cell.s.font
+            });
+          }
+        });
+        
+        return workbook;
+        
+      } catch (error) {
+        console.error('Error preserving formatting, falling back to basic export:', error);
+        // Fall through to basic export if formatting preservation fails
+      }
+    }
+    
+    console.log('No original formatting available, creating basic workbook');
+    
+    // Fallback: Create basic workbook without formatting
     const modifiedData = excelData.data.map((row: any[], rowIndex: number) => 
       row.map((cell: any, colIndex: number) => {
-        // Use record ID (first column) + column index as key
-        const recordId = row[0]; // First column as unique identifier
+        const recordId = row[0];
         const recordKey = `${recordId}|${colIndex}`;
         const modifiedValue = modifiedCells[recordKey];
         
@@ -318,8 +435,6 @@ function AppContent() {
     
     // Combine headers and modified data
     const worksheetData = [excelData.headers, ...modifiedData];
-    
-    console.log('Final worksheet data preview:', worksheetData.slice(0, 3));
     
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -352,18 +467,25 @@ function AppContent() {
       const newWorkbook = await createWorkbookWithChanges();
       
       // Generate filename
-      const filename = settings.customFilename || 
-        excelData.filename.replace(/\.[^/.]+$/, '') + '_modified';
+      const filename = 'Strexlista modified';
       
       // Import xlsx library for file writing
       const XLSX = await import('xlsx');
       
-      // Save the file with explicit formatting preservation options
-      XLSX.writeFile(newWorkbook, `${filename}.xlsx`, {
+      // Save the file with buffer method for better formatting preservation
+      const arrayBuffer = XLSX.write(newWorkbook, {
+        bookType: 'xlsx',
+        type: 'array',
         cellStyles: true,
-        bookSST: false,
-        type: 'binary'
+        bookSST: true
       });
+      
+      // Create blob and save using file-saver
+      const { saveAs } = await import('file-saver');
+      const blob = new Blob([arrayBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      saveAs(blob, `${filename}.xlsx`);
       
       // Show success message
       showToast({
@@ -378,10 +500,10 @@ function AppContent() {
       console.error('Error saving Excel file:', err);
       setError(`Failed to save file: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [excelData, modifiedCells, settings.customFilename, createWorkbookWithChanges, showToast]);
+  }, [excelData, modifiedCells, createWorkbookWithChanges, showToast]);
 
   // Enhanced export handler for different formats
-  const handleExport = useCallback(async (type: 'save' | 'csv' | 'pdf' | 'email' | 'print') => {
+  const handleExport = useCallback(async (type: 'save' | 'pdf' | 'email' | 'print') => {
     if (!excelData) return;
     
     try {
@@ -404,8 +526,7 @@ function AppContent() {
       const worksheetData = [excelData.headers, ...modifiedData];
       
       // Generate filename
-      const filename = settings.customFilename || 
-        excelData.filename.replace(/\.[^/.]+$/, '') + '_modified';
+      const filename = 'Strexlista modified';
       
       switch (type) {
         case 'save':
@@ -414,84 +535,373 @@ function AppContent() {
           
           console.log('=== WRITING XLSX FILE (SAVE) ===');
           console.log('Workbook to write:', workbookWithChanges);
+          console.log('Workbook sheets:', Object.keys(workbookWithChanges.Sheets));
           
-          XLSX.writeFile(workbookWithChanges, `${filename}.xlsx`);
+          // Write file with proper formatting preservation using buffer method
+          const arrayBuffer = XLSX.write(workbookWithChanges, {
+            bookType: 'xlsx',
+            type: 'array',
+            cellStyles: true,
+            bookSST: true
+          });
+          
+          // Create blob and save using file-saver for better formatting preservation
+          const { saveAs } = await import('file-saver');
+          const blob = new Blob([arrayBuffer], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+          saveAs(blob, `${filename}.xlsx`);
+          
           // Keep modifications so user can continue working
           addToRecentFiles(excelData.filename, excelData.filename);
           
           // Show success message
           showToast({
             type: 'success',
-            message: 'File saved successfully with your changes!',
+            message: 'File saved successfully with formatting preserved!',
             duration: 3000
           });
           break;
           
-        case 'csv':
-          // CSV format doesn't support formatting - inform user
-          // Create proper CSV data manually to ensure correct formatting
-          const properCsvData = worksheetData.map(row => 
-            row.map(cell => {
-              // Escape cells containing commas, quotes, or newlines
-              const cellStr = String(cell || '');
-              if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-                return `"${cellStr.replace(/"/g, '""')}"`;
-              }
-              return cellStr;
-            }).join(',')
-          ).join('\n');
-          
-          // Create blob and download
-          const csvBlob = new Blob([properCsvData], { type: 'text/csv;charset=utf-8;' });
-          const csvUrl = URL.createObjectURL(csvBlob);
-          const csvLink = document.createElement('a');
-          csvLink.href = csvUrl;
-          csvLink.download = `${filename}.csv`;
-          document.body.appendChild(csvLink);
-          csvLink.click();
-          document.body.removeChild(csvLink);
-          URL.revokeObjectURL(csvUrl);
-          
-          showToast({
-            type: 'warning',
-            message: 'CSV format exported successfully. Note: CSV files do not support formatting (colors, borders, etc.)',
-            duration: 5000
-          });
-          break;
-          
         case 'pdf':
-          // For now, create a printable HTML version
-          const printContent = worksheetData.map(row => 
-            `<tr>${row.map(cell => `<td style="border:1px solid #ccc;padding:4px;">${cell}</td>`).join('')}</tr>`
-          ).join('');
-          const printHTML = `
-            <html>
-              <head><title>${filename}</title></head>
-              <body>
-                <table style="border-collapse:collapse;width:100%;">
-                  ${printContent}
-                </table>
-              </body>
-            </html>
-          `;
-          const printWindow = window.open('', '_blank');
-          if (printWindow) {
-            printWindow.document.write(printHTML);
-            printWindow.document.close();
-            printWindow.print();
+          // Generate PDF using jsPDF with formatting from original Excel
+          try {
+            const jsPDF = (await import('jspdf')).default;
+            const autoTable = await import('jspdf-autotable');
+            
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(16);
+            doc.text(filename, 14, 22);
+            
+            // Prepare table data with formatting
+            const tableData = modifiedData.map(row => 
+              row.map(cell => cell?.toString() || '')
+            );
+            
+            // Extract styling information from original Excel if available
+            let headStyles: any = {
+              fillColor: [66, 139, 202],
+              textColor: 255,
+              fontStyle: 'bold',
+              fontSize: 10,
+            };
+            
+            let bodyStyles: any = {
+              fontSize: 9,
+              cellPadding: 3,
+            };
+            
+            let columnStyles: any = {};
+            
+            // If we have original formatting, try to apply it
+            if (excelData.formatting && excelData.formatting.cellStyles) {
+              console.log('Applying Excel formatting to PDF...');
+              
+              // Try to extract header row formatting
+              const headerCellRef = 'A1'; // First header cell
+              const headerStyle = excelData.formatting.cellStyles[headerCellRef];
+              
+              if (headerStyle) {
+                // Apply header formatting
+                if (headerStyle.fill && headerStyle.fill.fgColor) {
+                  // Convert Excel color to RGB
+                  const color = headerStyle.fill.fgColor.rgb || headerStyle.fill.fgColor.theme;
+                  if (color && typeof color === 'string' && color.length === 8) {
+                    // Extract RGB from ARGB hex
+                    const r = parseInt(color.substring(2, 4), 16);
+                    const g = parseInt(color.substring(4, 6), 16);
+                    const b = parseInt(color.substring(6, 8), 16);
+                    headStyles.fillColor = [r, g, b];
+                  }
+                }
+                
+                if (headerStyle.font) {
+                  if (headerStyle.font.bold) {
+                    headStyles.fontStyle = 'bold';
+                  }
+                  if (headerStyle.font.sz) {
+                    headStyles.fontSize = Math.max(8, Math.min(16, headerStyle.font.sz));
+                  }
+                }
+              }
+              
+              // Apply column widths if available
+              if (excelData.formatting.columnWidths) {
+                Object.keys(excelData.formatting.columnWidths).forEach(colIndex => {
+                  const width = excelData.formatting.columnWidths[parseInt(colIndex)];
+                  if (width) {
+                    // Convert Excel column width to PDF units (rough approximation)
+                    const pdfWidth = Math.max(20, Math.min(80, width * 5));
+                    columnStyles[colIndex] = { cellWidth: pdfWidth };
+                  }
+                });
+              }
+              
+              // Set alternating row colors for better readability
+              bodyStyles.alternateRowStyles = {
+                fillColor: [248, 249, 250]
+              };
+            }
+            
+            // Add table with enhanced formatting
+            autoTable.default(doc, {
+              head: [excelData.headers],
+              body: tableData,
+              startY: 30,
+              styles: bodyStyles,
+              headStyles: headStyles,
+              columnStyles: columnStyles,
+              margin: { top: 30, right: 10, bottom: 20, left: 10 },
+              tableWidth: 'auto',
+              theme: 'grid',
+              didDrawCell: function(data: any) {
+                // Add subtle borders
+                if (data.section === 'body') {
+                  doc.setDrawColor(200, 200, 200);
+                  doc.setLineWidth(0.1);
+                }
+              }
+            });
+            
+            // Add a footer with export info
+            const pageCount = doc.internal.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor(128);
+            doc.text(`Exported from Strexlista on ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 10);
+            doc.text(`Page 1 of ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 10);
+            
+            // Save the PDF
+            doc.save(`${filename}.pdf`);
+            
+            showToast({
+              message: 'PDF exported successfully with enhanced formatting!',
+              type: 'success',
+              duration: 3000
+            });
+          } catch (error) {
+            console.error('PDF export error:', error);
+            showToast({
+              message: 'Failed to export PDF. Please try again.',
+              type: 'error',
+              duration: 5000
+            });
           }
           break;
           
         case 'email':
-          // Create mailto link with CSV data
-          const csvData = worksheetData.map(row => row.join(',')).join('\n');
-          const mailto = `mailto:?subject=${encodeURIComponent(`Excel Data: ${filename}`)}&body=${encodeURIComponent(csvData)}`;
-          window.open(mailto);
+          // Create Excel file as blob and generate attachment link
+          try {
+            const workbookWithChanges = await createWorkbookWithChanges();
+            const XLSX = await import('xlsx');
+            
+            // Write workbook to array buffer
+            const excelBuffer = XLSX.write(workbookWithChanges, {
+              bookType: 'xlsx',
+              type: 'array'
+            });
+            
+            // Create blob
+            const blob = new Blob([excelBuffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            
+            // Create download URL
+            const url = URL.createObjectURL(blob);
+            
+            // For desktop: create a temporary download link and prompt user
+            if (window.navigator.userAgent.includes('Windows') || window.navigator.userAgent.includes('Mac')) {
+              const emailBody = `Please find the attached Excel file: ${filename}.xlsx\n\nNote: Your email client should allow you to attach the downloaded file.`;
+              const mailto = `mailto:?subject=${encodeURIComponent(`Excel Data: ${filename}`)}&body=${encodeURIComponent(emailBody)}`;
+              
+              // Download the file first
+              const downloadLink = document.createElement('a');
+              downloadLink.href = url;
+              downloadLink.download = `${filename}.xlsx`;
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              document.body.removeChild(downloadLink);
+              
+              // Then open email client
+              setTimeout(() => {
+                window.open(mailto);
+                showToast({
+                  message: 'File downloaded! Please attach it to your email.',
+                  type: 'info',
+                  duration: 5000
+                });
+              }, 500);
+            } else {
+              // For mobile: try to use Web Share API if available
+              if (navigator.share) {
+                const file = new File([blob], `${filename}.xlsx`, {
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+                
+                try {
+                  await navigator.share({
+                    title: `Excel Data: ${filename}`,
+                    text: 'Please find the attached Excel file.',
+                    files: [file]
+                  });
+                  
+                  showToast({
+                    message: 'Sharing completed!',
+                    type: 'success',
+                    duration: 3000
+                  });
+                } catch (shareError) {
+                  console.error('Share failed:', shareError);
+                  // Fallback to download
+                  const downloadLink = document.createElement('a');
+                  downloadLink.href = url;
+                  downloadLink.download = `${filename}.xlsx`;
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+                  
+                  showToast({
+                    message: 'File downloaded! You can attach it to your email.',
+                    type: 'info',
+                    duration: 5000
+                  });
+                }
+              } else {
+                // Fallback to download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = `${filename}.xlsx`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                showToast({
+                  message: 'File downloaded! You can attach it to your email.',
+                  type: 'info',
+                  duration: 5000
+                });
+              }
+            }
+            
+            // Clean up
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            
+          } catch (error) {
+            console.error('Email export error:', error);
+            showToast({
+              message: 'Failed to prepare file for email. Please try again.',
+              type: 'error',
+              duration: 5000
+            });
+          }
           break;
           
         case 'print':
-          // Print current view
-          window.print();
+          // Create a well-formatted printable HTML page
+          try {
+            const printContent = modifiedData.map(row => 
+              `<tr>${row.map(cell => 
+                `<td style="border:1px solid #333;padding:6px;font-size:12px;background:white;">${cell || ''}</td>`
+              ).join('')}</tr>`
+            ).join('');
+            
+            const headerContent = excelData.headers.map(header => 
+              `<th style="border:1px solid #333;padding:8px;background:#f5f5f5;font-weight:bold;font-size:12px;">${header}</th>`
+            ).join('');
+            
+            const printHTML = `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>${filename}</title>
+                  <style>
+                    @media print {
+                      body { margin: 0; }
+                      table { page-break-inside: avoid; }
+                    }
+                    body { 
+                      font-family: Arial, sans-serif; 
+                      margin: 20px;
+                      background: white;
+                    }
+                    h1 { 
+                      color: #333; 
+                      font-size: 18px; 
+                      margin-bottom: 20px;
+                      border-bottom: 2px solid #333;
+                      padding-bottom: 10px;
+                    }
+                    table { 
+                      border-collapse: collapse; 
+                      width: 100%; 
+                      margin-top: 10px;
+                    }
+                    th, td { 
+                      text-align: left; 
+                      word-wrap: break-word;
+                      max-width: 200px;
+                    }
+                    .timestamp {
+                      font-size: 10px;
+                      color: #666;
+                      margin-top: 20px;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <h1>${filename}</h1>
+                  <table>
+                    <thead>
+                      <tr>${headerContent}</tr>
+                    </thead>
+                    <tbody>
+                      ${printContent}
+                    </tbody>
+                  </table>
+                  <div class="timestamp">
+                    Generated on: ${new Date().toLocaleString()}
+                  </div>
+                </body>
+              </html>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+              printWindow.document.write(printHTML);
+              printWindow.document.close();
+              
+              // Wait for content to load, then print
+              printWindow.onload = () => {
+                setTimeout(() => {
+                  printWindow.print();
+                  // Close the window after printing (optional)
+                  printWindow.onafterprint = () => {
+                    printWindow.close();
+                  };
+                }, 500);
+              };
+              
+              showToast({
+                message: 'Print dialog opened!',
+                type: 'success',
+                duration: 3000
+              });
+            } else {
+              showToast({
+                message: 'Unable to open print dialog. Please check popup settings.',
+                type: 'error',
+                duration: 5000
+              });
+            }
+          } catch (error) {
+            console.error('Print error:', error);
+            showToast({
+              message: 'Failed to prepare document for printing.',
+              type: 'error',
+              duration: 5000
+            });
+          }
           break;
       }
       
@@ -499,7 +909,7 @@ function AppContent() {
       console.error('Error exporting file:', err);
       setError(`Failed to export file: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [excelData, modifiedCells, settings.customFilename, createWorkbookWithChanges, showToast]);
+  }, [excelData, modifiedCells, createWorkbookWithChanges, showToast]);
 
   // Load new file handlers
   const handleLoadNewFileRequest = useCallback(() => {
@@ -753,7 +1163,7 @@ function AppContent() {
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         onExport={handleExport}
-        filename={excelData?.filename || 'excel-export'}
+        filename="Strexlista modified"
       />
 
       {/* Load New File Confirmation Modal */}
