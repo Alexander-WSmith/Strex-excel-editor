@@ -5,12 +5,14 @@ A modern, cross-platform Excel editor built with React, TypeScript, and Vite. Th
 ## 🚀 Features
 
 - **📁 Excel File Support**: Upload and edit .xlsx/.xls files with drag & drop
+- **🎨 Formatting Preservation**: Maintains all original Excel formatting (colors, fonts, borders)
 - **🔍 Advanced Search**: Real-time filtering across first two columns
 - **🔒 Column Locking**: Configure read-only columns (0-10 columns)
 - **📄 Pagination**: Optimized performance with 30 rows per page
-- **💾 Auto-save**: Automatic local storage backup every 5 minutes
+- **💾 Persistent Storage**: Data persists across page reloads using localStorage
+- **📤 Multiple Export Options**: Excel, PDF, Email sharing, and Print
 - **⚡ Performance Caching**: Intelligent column width and search caching
-- **🎨 Modern UI**: Clean, responsive design with Tailwind CSS
+- **🎨 Modern UI**: Clean, responsive design with Tailwind CSS and dark mode
 - **🖥️ Cross-platform**: Web app, PWA, and Electron desktop versions
 
 ## 📋 Prerequisites
@@ -20,35 +22,45 @@ Before setting up the project, you need to install Node.js and npm:
 ### Windows Installation:
 1. **Download Node.js**: Go to [nodejs.org](https://nodejs.org/) and download the LTS version
 2. **Run the installer**: Follow the installation wizard
-3. **Verify installation**: Open PowerShell and run:
-   ```powershell
+3. **Verify installation**: Open Command Prompt or PowerShell and run:
+   ```bash
    node --version
    npm --version
    ```
 
-### Alternative: Using Chocolatey (Windows)
-```powershell
-# Install Chocolatey (if not already installed)
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+### macOS Installation:
+```bash
+# Using Homebrew (recommended)
+brew install node
 
-# Install Node.js
-choco install nodejs
+# Or download from nodejs.org
+```
+
+### Linux Installation:
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install nodejs npm
+
+# CentOS/RHEL/Fedora
+sudo dnf install nodejs npm
 ```
 
 ## 🛠️ Installation & Setup
 
-1. **Navigate to the project directory**:
-   ```powershell
-   cd "c:\Users\alexa\OneDrive\Skrivbord\Strexlista React"
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Alexander-WSmith/Strex-excel-editor.git
+   cd Strex-excel-editor
    ```
 
 2. **Install dependencies**:
-   ```powershell
+   ```bash
    npm install
    ```
 
 3. **Start development server**:
-   ```powershell
+   ```bash
    npm run dev
    ```
 
@@ -62,7 +74,7 @@ choco install nodejs
 - Progressive Web App (PWA) support for offline use
 
 ### 2. Desktop Application (Electron)
-```powershell
+```bash
 # Build desktop app for current platform
 npm run build-electron
 
@@ -71,7 +83,7 @@ npm run dist
 ```
 
 ### 3. Standalone Web Files
-```powershell
+```bash
 # Build static files for distribution
 npm run build
 ```
@@ -114,12 +126,17 @@ const AUTH_CONFIG = {
 
 ## 🎯 Usage
 
-1. **Upload Excel File**: Drag & drop or click to browse
-2. **Edit Cells**: Click any cell to edit (respects column locking)
-3. **Search Data**: Use the search bar to filter rows
+1. **Upload Excel File**: Drag & drop or click to browse for .xlsx/.xls files
+2. **Edit Cells**: Click any cell to edit (respects column locking settings)
+3. **Search Data**: Use the search bar to filter rows in real-time
 4. **Navigate Pages**: Use pagination controls at the bottom
-5. **Save Changes**: Click "Save Changes" to download modified file
-6. **Configure Options**: Click "Options" for settings
+5. **Export Options**: Click "Export" for multiple format options:
+   - **Excel**: Download with all formatting preserved
+   - **PDF**: Professional document with table formatting
+   - **Email**: Share file as attachment via email client
+   - **Print**: Generate print-ready document
+6. **Load New File**: Use "Load New File" button with save confirmation
+7. **Configure Options**: Click "Options" gear icon for settings
 
 ## ⚙️ Configuration
 
@@ -156,14 +173,25 @@ src/
 
 This React version maintains all features from the original Python/Kivy application:
 
-- ✅ Auto-save functionality (every 5 minutes)
-- ✅ Excel data type preservation
+- ✅ Persistent data storage (localStorage instead of auto-save files)
+- ✅ Excel formatting preservation (enhanced with buffer-based saving)
 - ✅ Column locking (configurable 0-10 columns)
 - ✅ Advanced search and filtering
 - ✅ Performance optimization with caching
 - ✅ Pagination (30 rows per page)
-- ✅ Custom filename support
+- ✅ Multiple export formats (Excel, PDF, Email, Print)
 - ✅ Cross-platform distribution
+
+## 🆕 Recent Updates
+
+### Version 2.0 Features:
+- **🎨 Excel Formatting Preservation**: Complete preservation of colors, fonts, borders, and cell styles
+- **📄 Professional PDF Export**: Enhanced PDF generation with original Excel styling
+- **📧 Email File Sharing**: Attach Excel files to emails instead of plain text
+- **🖨️ Improved Print Function**: Professional HTML layout with proper formatting
+- **🗂️ Load New File Feature**: Save confirmation workflow when switching files
+- **💾 Data Persistence**: All changes persist across browser sessions
+- **🎯 Streamlined Interface**: Removed CSV export for cleaner user experience
 
 ## 🐛 Troubleshooting
 
@@ -188,11 +216,13 @@ For issues or questions:
 
 ## 🚀 Next Steps After Installation
 
-1. **Test the application**: Upload a sample Excel file
-2. **Configure settings**: Adjust rows per page and column locking
-3. **Create desktop shortcut**: Use the built-in Electron app
-4. **Deploy**: Choose your preferred distribution method
+1. **Test the application**: Upload a sample Excel file to see formatting preservation
+2. **Try export options**: Test PDF generation and email sharing features
+3. **Configure settings**: Adjust rows per page and column locking in options
+4. **Test persistence**: Make changes, reload page, and see data preserved
+5. **Create desktop app**: Use `npm run build-electron` for standalone application
+6. **Deploy**: Choose your preferred distribution method (web, PWA, or desktop)
 
 ---
 
-**Ready to start?** Run `npm install` and then `npm run dev` to begin!
+**Ready to start?** Clone the repository, run `npm install`, then `npm run dev` to begin!
