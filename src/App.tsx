@@ -419,20 +419,25 @@ function AppContent() {
     console.log('No original formatting available, creating basic workbook');
     
     // Fallback: Create basic workbook without formatting
-      // Only export first two rows and any row with at least one modified cell
+      // Always include header row
       const filteredRows: any[][] = [];
-      // Always include first two rows
+
+      // Always include first two data rows if present
       if (excelData.data.length > 0) filteredRows.push(excelData.data[0]);
       if (excelData.data.length > 1) filteredRows.push(excelData.data[1]);
 
-      // Add any other row where at least one cell is modified
+      // Add any other row (index >= 2) where at least one cell is modified
       for (let rowIndex = 2; rowIndex < excelData.data.length; rowIndex++) {
         const row = excelData.data[rowIndex];
-        const isModified = row.some((_, colIndex) => {
+        let isModified = false;
+        for (let colIndex = 0; colIndex < row.length; colIndex++) {
           const recordId = row[0];
           const recordKey = `${recordId}|${colIndex}`;
-          return modifiedCells[recordKey] !== undefined;
-        });
+          if (modifiedCells[recordKey] !== undefined) {
+            isModified = true;
+            break;
+          }
+        }
         if (isModified) {
           filteredRows.push(row);
         }
