@@ -66,28 +66,6 @@ sudo dnf install nodejs npm
 
 4. **Open in browser**: Navigate to `http://localhost:5173`
 
-## 📦 Distribution Options
-
-### 1. Web Application (Password Protected)
-- Deploy to any web hosting service
-- Built-in password protection capability
-- Progressive Web App (PWA) support for offline use
-
-### 2. Desktop Application (Electron)
-```bash
-# Build desktop app for current platform
-npm run build-electron
-
-# Build for all platforms
-npm run dist
-```
-
-### 3. Standalone Web Files
-```bash
-# Build static files for distribution
-npm run build
-```
-
 ## 🔧 Available Scripts
 
 | Command | Description |
@@ -107,23 +85,6 @@ npm run build
 - **macOS**: `.dmg` package  
 - **Linux**: `.AppImage` package
 
-### Web Deployment:
-- **Static hosting**: Netlify, Vercel, GitHub Pages
-- **Server hosting**: Any web server with HTTPS
-- **PWA**: Install as desktop app from browser
-
-## 🔐 Password Protection Setup
-
-For password-protected deployment, modify the authentication configuration in `src/components/AuthGuard.tsx`:
-
-```typescript
-const AUTH_CONFIG = {
-  enabled: true,
-  password: "your-secure-password",
-  sessionTimeout: 60 // minutes
-};
-```
-
 ## 🎯 Usage
 
 1. **Upload Excel File**: Drag & drop or click to browse for .xlsx/.xls files
@@ -137,61 +98,6 @@ const AUTH_CONFIG = {
    - **Print**: Generate print-ready document
 6. **Load New File**: Use "Load New File" button with save confirmation
 7. **Configure Options**: Click "Options" gear icon for settings
-
-## ⚙️ Configuration
-
-### Performance Settings:
-- Rows per page: 30 (adjustable in options)
-- Cache expiry: 30 minutes
-- Auto-save interval: 5 minutes
-
-### Column Locking:
-- Enable/disable in options panel
-- Configure 0-10 locked columns
-- Locked columns appear read-only
-
-## 🏗️ Architecture
-
-```
-src/
-├── components/          # React components
-│   ├── FileUploader.tsx    # File upload with drag & drop
-│   ├── ExcelGrid.tsx       # Main data grid
-│   ├── SearchBar.tsx       # Search functionality
-│   ├── OptionsPanel.tsx    # Settings panel
-│   └── StatusBar.tsx       # Status and pagination
-├── hooks/              # Custom React hooks
-│   ├── useExcelData.ts     # Excel file operations
-│   ├── useAutoSave.ts      # Auto-save functionality
-│   ├── useCache.ts         # Performance caching
-│   └── useToast.ts         # Notifications
-├── types.ts            # TypeScript type definitions
-└── App.tsx            # Main application component
-```
-
-## 🔄 Migration from Python Version
-
-This React version maintains all features from the original Python/Kivy application:
-
-- ✅ Persistent data storage (localStorage instead of auto-save files)
-- ✅ Excel formatting preservation (enhanced with buffer-based saving)
-- ✅ Column locking (configurable 0-10 columns)
-- ✅ Advanced search and filtering
-- ✅ Performance optimization with caching
-- ✅ Pagination (30 rows per page)
-- ✅ Multiple export formats (Excel, PDF, Email, Print)
-- ✅ Cross-platform distribution
-
-## 🆕 Recent Updates
-
-### Version 2.0 Features:
-- **🎨 Excel Formatting Preservation**: Complete preservation of colors, fonts, borders, and cell styles
-- **📄 Professional PDF Export**: Enhanced PDF generation with original Excel styling
-- **📧 Email File Sharing**: Attach Excel files to emails instead of plain text
-- **🖨️ Improved Print Function**: Professional HTML layout with proper formatting
-- **🗂️ Load New File Feature**: Save confirmation workflow when switching files
-- **💾 Data Persistence**: All changes persist across browser sessions
-- **🎯 Streamlined Interface**: Removed CSV export for cleaner user experience
 
 ## 🐛 Troubleshooting
 
@@ -207,19 +113,6 @@ This React version maintains all features from the original Python/Kivy applicat
 - Enable caching in options for better performance
 - Reduce rows per page for very large files
 
-## 📞 Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Verify all dependencies are installed correctly
-3. Ensure Node.js version is 16 or higher
-
-## 🚀 Next Steps After Installation
-
-1. **Test the application**: Upload a sample Excel file to see formatting preservation
-2. **Try export options**: Test PDF generation and email sharing features
-3. **Configure settings**: Adjust rows per page and column locking in options
-4. **Test persistence**: Make changes, reload page, and see data preserved
 5. **Create desktop app**: Use `npm run build-electron` for standalone application
 6. **Deploy**: Choose your preferred distribution method (web, PWA, or desktop)
 
