@@ -419,29 +419,47 @@ function AppContent() {
     console.log('No original formatting available, creating basic workbook');
     
     // Fallback: Create basic workbook without formatting
-    const modifiedData = excelData.data.map((row: any[], rowIndex: number) => 
-      row.map((cell: any, colIndex: number) => {
-        const recordId = row[0];
-        const recordKey = `${recordId}|${colIndex}`;
-        const modifiedValue = modifiedCells[recordKey];
-        
-        if (modifiedValue !== undefined) {
-          console.log(`Applying change: record "${recordId}" col ${colIndex} = ${modifiedValue}`);
-          return modifiedValue;
+      // Only export first two rows and any row with at least one modified cell
+      const filteredRows: any[][] = [];
+      // Always include first two rows
+      if (excelData.data.length > 0) filteredRows.push(excelData.data[0]);
+      if (excelData.data.length > 1) filteredRows.push(excelData.data[1]);
+
+      // Add any other row where at least one cell is modified
+      for (let rowIndex = 2; rowIndex < excelData.data.length; rowIndex++) {
+        const row = excelData.data[rowIndex];
+        const isModified = row.some((_, colIndex) => {
+          const recordId = row[0];
+          const recordKey = `${recordId}|${colIndex}`;
+          return modifiedCells[recordKey] !== undefined;
+        });
+        if (isModified) {
+          filteredRows.push(row);
         }
-        return cell;
-      })
-    );
-    
-    // Combine headers and modified data
-    const worksheetData = [excelData.headers, ...modifiedData];
-    
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-    
-    return workbook;
+      }
+
+      // Apply modifications to filtered rows
+      const modifiedData = filteredRows.map((row: any[], rowIndex: number) =>
+        row.map((cell: any, colIndex: number) => {
+          const recordId = row[0];
+          const recordKey = `${recordId}|${colIndex}`;
+          const modifiedValue = modifiedCells[recordKey];
+          if (modifiedValue !== undefined) {
+            return modifiedValue;
+          }
+          return cell;
+        })
+      );
+
+      // Combine headers and filtered/modified data
+      const worksheetData = [excelData.headers, ...modifiedData];
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+      return workbook;
     
   }, [excelData, modifiedCells]);
 
